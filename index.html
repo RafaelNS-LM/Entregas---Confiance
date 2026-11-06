@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de NS – Last Mile Confiance</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>if(!window.XLSX){document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
+<style>
+:root{
+  --surface-0:#f4f4f1; --surface-1:#fcfcfb; --border:rgba(11,11,11,.10);
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#7a7974;
+  --grid:#e1e0d9; --axis:#c3c2b7;
+  --series-1:#2a78d6;
+  --good:#0ca30c; --good-text:#006300; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --pending:#8a8983;
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --surface-0:#111110; --surface-1:#1a1a19; --border:rgba(255,255,255,.10);
+  --text-primary:#f0efec; --text-secondary:#c3c2b7; --text-muted:#9a998f;
+  --grid:#2c2c2a; --axis:#383835; --series-1:#3987e5; --good-text:#3fcf3f; --pending:#7d7c75;
+  --row-hover:#232321; --input-bg:#232321;
+  --b-ok:#14361a; --b-bad:#4a1a1a; --b-bad-t:#ff9a9a; --b-warn:#47360a; --b-warn-t:#ffd27a; --b-neu:#2c2c2a;
+  --tip-bg:#f0efec; --tip-t:#0b0b0b; --hdr:#0a1726;}
+:root{--row-hover:#f3f2ee; --input-bg:#fff; --b-ok:#e3f4e3; --b-bad:#fbe5e5; --b-bad-t:#9e2121; --b-warn:#fff2d4; --b-warn-t:#7a5200; --b-neu:#ecebe6; --tip-bg:#0b0b0b; --tip-t:#fff; --hdr:#0f2338;}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--surface-0);color:var(--text-primary)}
+header{background:var(--hdr);color:#fff;padding:14px 24px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0;font-weight:650}
+header .sub{font-size:12px;color:#b9c6d4}
+.upload{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:#fff;color:#0f2338;border:0;border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+.btn.small{padding:5px 10px;font-size:12px;background:var(--surface-0);color:var(--text-primary);border:1px solid var(--border)}
+main{padding:16px 24px 40px;max-width:1500px;margin:0 auto}
+.filters{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:14px}
+.filters label{display:flex;flex-direction:column;font-size:12px;color:var(--text-secondary);gap:3px}
+.filters select,.filters input[type=number]{padding:6px 8px;border:1px solid var(--axis);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:13px;min-width:160px}
+.filters input[type=number]{min-width:90px;width:90px}
+.chk{flex-direction:row!important;align-items:center;gap:6px!important;font-size:13px!important;color:var(--text-primary)!important;padding-bottom:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--text-secondary)}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.5px;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12px;color:var(--text-muted);margin-top:2px}
+.kpi.hero{border-left:5px solid var(--axis)}
+.kpi.hero.ok{border-left-color:var(--good)} .kpi.hero.bad{border-left-color:var(--critical)} .kpi.hero.warn{border-left-color:var(--warning)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.badge.ok{background:var(--b-ok);color:var(--good-text)} .badge.bad{background:var(--b-bad);color:var(--b-bad-t)} .badge.warn{background:var(--b-warn);color:var(--b-warn-t)} .badge.neutral{background:var(--b-neu);color:var(--text-secondary)}
+.alert{background:var(--surface-1);border:1px solid var(--border);border-left:5px solid var(--critical);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.alert ul{margin:6px 0 0;padding-left:18px} .alert li{margin:2px 0}
+.alert.okb{border-left-color:var(--good)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:980px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;overflow:hidden}
+.card h2{font-size:15px;margin:0 0 2px;font-weight:650}
+.card .hint{font-size:12px;color:var(--text-muted);margin:0 0 10px}
+.card-head{display:flex;justify-content:space-between;align-items:start;gap:10px;flex-wrap:wrap}
+svg text{font-family:inherit}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:11.5px;font-weight:600;color:var(--text-secondary);padding:7px 8px;border-bottom:1px solid var(--axis);white-space:nowrap;vertical-align:bottom;cursor:pointer;user-select:none;background:var(--surface-1);position:sticky;top:0}
+th.num,td.num{text-align:right}
+td{padding:6px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+tr:hover td{background:var(--row-hover)}
+.minibar{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:var(--series-1);vertical-align:middle;margin-right:6px}
+.stack{display:flex;height:10px;width:64px;border-radius:4px;overflow:hidden;gap:2px;background:var(--surface-1)}
+.stack span{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+#tip{position:fixed;pointer-events:none;background:var(--tip-bg);color:var(--tip-t);font-size:12px;padding:6px 9px;border-radius:6px;opacity:0;transition:opacity .08s;z-index:50;max-width:280px;line-height:1.4}
+.scroll{max-height:420px;overflow:auto}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.drvs{display:flex;flex-wrap:wrap;gap:4px 12px;white-space:normal;max-width:560px;font-size:12.5px}
+#tTipo td{vertical-align:top}
+#insModal .mbox{width:min(900px,100%)}
+.btn.insb{background:var(--b-bad);color:var(--b-bad-t);border-color:transparent;padding:2px 8px;font-weight:700}
+.btn.wa{background:#1f9d55;color:#fff;border-color:#1f9d55}
+.btn.wa.mini{padding:2px 8px;font-size:11px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal[hidden]{display:none}
+.mbox{background:var(--surface-1);color:var(--text-primary);border-radius:12px;padding:16px;width:min(680px,100%);max-height:92vh;display:flex;flex-direction:column;gap:10px;border:1px solid var(--border)}
+.mrow{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.mrow.end{justify-content:flex-end}
+.mrow label{display:flex;flex-direction:column;font-size:12px;color:var(--text-secondary);gap:3px;flex:1;min-width:200px}
+.mrow select,.mrow input{padding:7px 8px;border:1px solid var(--axis);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:13px}
+#waTxt{width:100%;min-height:320px;flex:1;font:12.5px/1.45 ui-monospace,Consolas,monospace;padding:10px;border:1px solid var(--axis);border-radius:8px;background:var(--input-bg);color:var(--text-primary);resize:vertical}
+.dq{border-left:5px solid var(--warning)}
+.dq .nums{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 10px}
+.dq .nums div{font-size:12px;color:var(--text-secondary)} .dq .nums b{display:block;font-size:22px;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;border:1px solid var(--axis);border-radius:8px;overflow:hidden}
+.seg button{background:var(--surface-1);color:var(--text-primary);border:0;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;border-right:1px solid var(--axis)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--series-1);color:#fff}
+.regs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media(max-width:900px){.regs{grid-template-columns:1fr}}
+.reg{border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:var(--surface-0);border-left:5px solid var(--axis)}
+.reg.ok{border-left-color:var(--good)}.reg.bad{border-left-color:var(--critical)}.reg.warn{border-left-color:var(--warning)}
+.reg.on{outline:2px solid var(--series-1);outline-offset:-1px}
+.reg .l{min-width:86px}.reg h3{margin:0;font-size:12px;color:var(--text-secondary);font-weight:600}
+.reg .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.reg .g{display:flex;gap:12px;font-size:11px;color:var(--text-muted);flex-wrap:wrap}
+.reg .g b{display:block;font-size:13px;color:var(--text-primary);font-variant-numeric:tabular-nums}
+#regCard{padding:10px 14px}#regCard h2{font-size:14px}#regCard .hint{margin:0 0 8px}
+#drop{position:fixed;inset:0;background:rgba(15,35,56,.85);color:#fff;display:none;align-items:center;justify-content:center;font-size:22px;z-index:60}
+.foot{font-size:12px;color:var(--text-muted);margin-top:10px}
+.msg{font-size:12px;color:#ffd27a}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Painel de NS – Last Mile Confiance</h1>
+    <div class="sub" id="subt">—</div>
+  </div>
+  <div class="upload">
+    <input type="file" id="file" accept=".xls,.xlsx,.csv" hidden>
+    <button class="btn" onclick="document.getElementById('file').click()">Carregar base atualizada (.xls)</button>
+    <button class="btn ghost" id="btnTheme" title="Alternar tema claro/escuro">🌙 Tema escuro</button>
+    <span class="msg" id="msg"></span>
+  </div>
+</header>
+<div id="drop">Solte o arquivo .xls aqui</div>
+<main>
+  <div class="card" id="regCard"><div class="card-head"><div><h2>NS por região</h2><p class="hint">NS = entregues ÷ total geral. Interior = Rodrigo, Wilson e Lucas; demais = Capital. Clique para filtrar o painel.</p></div>
+    <div class="seg" id="regTabs"><button data-reg="GERAL">Geral</button><button data-reg="CAPITAL">Capital</button><button data-reg="INTERIOR">Interior</button></div></div>
+    <div class="regs" id="regs"></div></div>
+  <div class="filters">
+    <label>Entregador<select id="fEnt"></select></label>
+    <span class="hint" id="viewLab" style="padding-bottom:7px"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div id="destaque"></div>
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Pedidos em aberto – prioridade de cobrança</h2><p class="hint">Pedidos não entregues, ordenados pelo maior tempo sem movimentação.</p></div>
+      <div class="btns"><button class="btn small wa" id="btnWa">📲 Enviar ao motorista (WhatsApp)</button><button class="btn small" id="btnPendXls">⬇ Excel</button></div>
+    </div>
+    <div class="tw scroll"><table id="tPend"></table></div>
+  </div>
+
+  <div id="alerts"></div>
+
+  <div class="grid2">
+    <div class="card"><h2>Entregas realizadas por hora</h2><p class="hint">Baixas de "Entrega Realizada" por hora. Linha tracejada = média de entregas por hora no dia (barra acima da linha = hora acima da média).</p><div id="chHour"></div></div>
+    <div class="card"><h2>Evolução do NS acumulado</h2><p class="hint">Entregues acumulados ÷ base do dia, ao fim de cada hora. Linha tracejada = meta.</p><div id="chNs"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Produtividade por entregador</h2><p class="hint"><b>Entregas/h</b> = 60 ÷ intervalo médio (só para quem tem ≥3 entregas, para não distorcer). <b>Interv. médio</b> = tempo entre a 1ª e a última entrega ÷ nº de intervalos. <b>Interv. típico (mediana)</b> = o intervalo "do meio": metade das entregas saiu em menos tempo que isso, metade em mais. Diferente da média, não é puxado por uma parada longa (almoço, pane, cliente demorado). <b>Se a média for bem maior que a mediana, o entregador tem ritmo bom mas fez paradas longas</b> — veja o "Maior interv.". <b>Sem baixa há</b> = tempo desde o último evento do entregador até a hora de referência da base.</p></div></div>
+    <div class="tw"><table id="tDrv"></table></div>
+  </div>
+
+  <div class="card"><div class="card-head"><div><h2>Ocorrências por tipo</h2><p class="hint">Pedidos não entregues por status (entregues ficam de fora). % calculado sobre o total geral da base.</p></div><div class="btns"><button class="btn small" id="btnTipoXls">⬇ Excel</button></div></div><div class="tw"><table id="tTipo"></table></div></div>
+
+  <div class="foot" id="foot"></div>
+</main>
+<div id="tip"></div>
+<div id="insModal" class="modal" hidden>
+  <div class="mbox">
+    <div class="card-head"><h2 id="insTit">Motivos de insucesso</h2><button class="btn small" id="insClose">✕ Fechar</button></div>
+    <div id="insBody"></div>
+  </div>
+</div>
+<div id="waModal" class="modal" hidden>
+  <div class="mbox">
+    <div class="card-head"><h2>Enviar pendências ao motorista</h2><button class="btn small" id="waClose">✕ Fechar</button></div>
+    <div class="mrow">
+      <label>Motorista<select id="waDrv"></select></label>
+      <label>WhatsApp do motorista (com DDD)<input id="waTel" placeholder="Ex.: 61 99999-9999"></label>
+    </div>
+    <p class="hint" id="waInfo"></p>
+    <textarea id="waTxt" spellcheck="false"></textarea>
+    <div class="mrow end">
+      <span class="hint" id="waMsg"></span>
+      <button class="btn small" id="waCopy">Copiar mensagem</button>
+      <button class="btn small wa" id="waGo">Abrir no WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMBED = [["1583770110477282","f0aabe9e-21d9-4efb-8901-698b15b797fb","118620991","861362","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190198497","7","2026-11-04T09:18","CONFIANCE LOGISTICA LTDA"],["1583670110432192","dd6195df-09f4-4ade-94cc-2471d5bb4b7b","118620957","860874","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190158754","7","2026-11-04T09:18","CONFIANCE LOGISTICA LTDA"],["1583770110462341","74e7fd79-9a3d-467e-b437-6aa64756426e","118620957","860847","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T09:35","1190179522","7","2026-11-04T09:18","CONFIANCE LOGISTICA LTDA"],["1583835002513227","e5b71db4-b02a-4f5a-aba8-1433d7321696","118620957","861166","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:06","1190199984","7","2026-11-04T09:18","CONFIANCE LOGISTICA LTDA"],["1583735002512259","cec4bd09-965b-4a30-9648-ba2ca4e1de8d","118620886","861165","DENIS ALVES RODRIGUES","Saiu para Entrega","2026-11-04T07:47","1190185901","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002512830","5481dd6f-9530-4cd7-a919-79b681eba995","118620886","861060","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T10:28","1190196388","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583770110465686","56fce7a0-63f8-4df9-948e-fac9ac1683a9","118620886","861170","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190184992","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["50170396","24978654-3244-47ee-914b-a9fdc5137c2e","118620886","861196","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:02","1190186329","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583770110452411","bf829192-cf61-4327-bfbc-0b33b8c8b8e4","118620886","861190","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:56","1190188545","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002512722","f394c110-15ec-486c-b3f8-fd9b2ee3e410","118620886","861187","DENIS ALVES RODRIGUES","Saiu para Entrega","2026-11-04T07:47","1190195091","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583770110444823","e09de405-7372-4437-8c25-cef3b1e2c843","118620793","861076","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T09:56","1190140233","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110435447","2671d6b4-da50-4f36-bf5a-133c4bdf01f2","118620793","861079","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:55","1190165632","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110430044","2122a0e6-6293-45c6-b86c-fdffb76e172e","118620793","861074","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T12:25","1190110242","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002511009","7424cbd5-eb0f-4c8e-9cd3-3c8927fbc74f","118620793","861078","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T14:19","1190159758","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110428340","acc88588-d0e3-4ad8-b0e1-97b1bfca3e35","118620793","861075","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T12:25","1190119766","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["50166410","d3e223d7-424d-4d29-b0c1-24e1f4f83413","118620793","861087","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T12:27","1190117662","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583770110456789","be12f8a8-4d70-4a55-9c87-0627cd96d0d9","118620793","861080","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:07","1190170776","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002509808","1dbc9852-c5d3-44d6-b613-8757f55003f4","118620793","861086","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T15:52","1190120036","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110432409","871bddc3-74f3-414d-8777-6e81297b38ac","118620793","861085","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T15:54","1190112459","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110432742","66760930-70ab-48dc-bf6a-8b065c682e2a","118620793","861061","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T10:22","1190169137","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110406312","bb6c6381-8027-4b72-ab82-0a37ef2d956e","118620793","861077","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T14:21","1190101164","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110433137","bf19f1f3-ef96-4de8-9506-b656b203e72f","118620793","861062","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T13:20","1190108134","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583770110443190","c068a329-f2a1-43b0-97a5-5a0508ab0dc6","118620793","861063","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:52","1190135852","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["50132538","dc6b3cc9-7dce-4100-85aa-1429198602f7","118619749","860372","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:35","1190052191","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110386862","215c03f7-657f-4d6d-83f3-8235031fdbf5","118619749","860012","Francinaldo de Brito Sousa","1a Tentativa Cliente Ausente","2026-11-04T13:30","1190063809","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110387668","c894037e-2c5c-4651-b279-d6367aa6a1bc","118619749","860632","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T13:20","1190071454","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110399496","a77f8df8-389d-440e-a58c-7a8f0a1234da","118619749","860015","PAULO VICTO TEIXEIRA RIBEIRO","Saiu para Entrega","2026-11-04T14:39","1190047682","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583635002506502","541109e4-6910-4719-95bb-88831d70fc45","118619749","860013","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:40","1190004831","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583470110341580","5371f172-a23e-4ff2-8c31-572d6fc50005","118619749","860014","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:34","1189957210","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110404651","dca6dfd1-f50e-46cf-b4a6-6ee166ac7da3","118619749","860411","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:51","1190056266","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583570110365895","615306d9-cb13-40b2-9719-476661357fd9","118619749","860011","PAULO VICTO TEIXEIRA RIBEIRO","Entrega Realizada Normalmente","2026-11-04T14:44","1189967065","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110428227","1151adb6-a9e9-40b4-891d-aabd8b038d72","118619749","860404","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T08:10","1190098620","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110388965","56414d17-8d12-40b8-87be-e1e2a8fa994c","118619749","860018","PAULO VICTO TEIXEIRA RIBEIRO","Saiu para Entrega","2026-11-04T14:39","1190023282","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583535002505638","9e393334-f7f3-48ed-b0d2-276f2fb2c8aa","118619749","860017","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T14:03","1189975534","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110396506","802bde72-1435-40c8-8a03-c3015b4d8f14","118619749","860016","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:32","1190040469","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110416705","f48cff61-e1fe-4608-8c8f-90865d0425d7","118619749","860633","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T14:58","1190076401","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110411550","7d9f6f94-93c7-41c7-a67b-f3bec00a9b3d","118619749","860371","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:03","1190067719","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110403968","b8d327e2-06b0-47e2-afe5-43aff2f8d7b4","118619749","860380","PAULO VICTO TEIXEIRA RIBEIRO","Saiu para Entrega","2026-11-04T14:39","1190096138","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002508516","fe754fde-d7df-41aa-b5bb-563033adf264","118619749","860010","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190074014","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583635002507357","b2f7a4a0-cf8d-4225-aa7c-845fe3330b68","118619749","860410","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:34","1190040420","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583670110420106","986b17f0-c8c6-4e05-a8f5-c05a8b5bfa00","118619749","860354","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:21","1190082786","7","2026-11-04T09:19","CONFIANCE LOGISTICA LTDA"],["1583735002512223","1dc0c14a-ceb9-475b-80ac-290fe1da6270","118620907","861072","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:00","1190185629","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512812","8831f62d-3195-4c80-a82c-6a518e819e33","118620907","861071","DENIS ALVES RODRIGUES","Entrega Realizada Normalmente","2026-11-04T14:59","1190193270","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512445","4b49f42a-e915-421c-84d0-d158ddd4152a","118620907","861292","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T12:22","1190188150","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110475233","46ce5b4c-5f71-4585-96fb-49619a431b22","118620907","861081","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T08:25","1190195840","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110472505","f2523f79-3a0d-4750-9782-67f945021968","118620907","861082","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:13","1190193034","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110457303","5522ced9-25ca-4989-9c87-8a35a748263d","118620907","861065","Seginaldo Antonio da Silva","Troca de transportadora","2026-11-04T06:39","1190195399","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110471885","a81cc3a2-9e01-499b-b72c-cb270918ab59","118620907","861084","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:45","1190190732","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110471169","f46bba5b-e361-4ced-a4e2-f68f4f79fe51","118620907","861083","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190190324","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002513001","a2c6698a-c0a8-4072-9558-3ff9da5d5e5f","118620907","861070","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:10","1190197107","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512589","485f1498-6532-45f0-8a40-7bab730fd50b","118620907","861067","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:53","1190190221","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512365","1f2a33be-6d04-4948-bafe-569b48190c5d","118620907","861064","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190187311","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512546","e7490136-2aee-4639-9e94-1d1de7b1cc03","118620907","861066","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:17","1190189582","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110450021","2db4241f-791d-4950-ad35-34bdb666bcc2","118620907","861073","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190186410","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110452434","cad7eb0a-c422-4afd-9782-f4ecc42fc41c","118620907","861069","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190188566","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002512393","03f5da44-98d6-4fa2-823e-1882491adfa2","118620907","861068","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T16:00","1190187656","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110382293","7d1ce775-5162-4f21-bc32-48065f29cf49","118620907","861089","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190198787","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110460219","ed653f92-7f9f-4dad-89e7-d7118c30b45b","118620907","861168","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:52","1190199251","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583835002513125","a968a69e-8ce7-4a6e-8c51-349ad0f1f9e5","118620907","861169","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T10:20","1190198505","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583770110459561","b72c1fdf-ee72-4333-af86-3ecd3c4fa853","118620907","861167","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T14:02","1190198390","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110357800","d4176d23-087a-4177-91de-828014053eb2","118620097","860754","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:26","1189971530","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002508960","03b0ea28-1d7a-46ae-8e9f-bfd35ef040e7","118620097","860763","DENIS ALVES RODRIGUES","Entrega Realizada Normalmente","2026-11-04T10:43","1190086861","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110405857","ce7c482b-e3a0-4d41-8fc1-23aa6413962c","118620097","860690","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T15:33","1190061001","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110352471","73f1dc0f-702d-44b1-932b-8cd3fb7cb893","118620097","860753","Claudio Raimundo Nonato","Em rota de entrega","2026-11-04T06:20","1189967676","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110426398","06fa0698-1632-4da7-b084-c166c305845e","118620097","860758","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T14:09","1190093896","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002503486","111390fb-3289-4054-81fa-5578db70c6cc","118620097","860683","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T14:29","1189948633","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002504349","cced2479-8719-43de-b7e6-b3db91a173b1","118620097","860761","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1189959456","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110386305","c17c0d91-e342-47c7-9a65-59a6e747d864","118620097","860756","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T10:24","1190062461","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002505157","bdd8ec9f-e72c-4a69-867c-70d457be5410","118620097","860764","PAULO VICTO TEIXEIRA RIBEIRO","Saiu para Entrega","2026-11-04T14:39","1189967289","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110351045","ae104927-f6ea-4ea6-a6a0-259069890100","118620097","860755","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T13:33","1189966846","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002504718","b89b97e3-30b8-4620-9668-c5d887e38a34","118620097","860034","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:47","1189963058","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110349645","78282a18-a4bf-4765-b6f8-16c5df92a368","118620097","860766","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1189951743","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002505307","fafef9fa-4ec8-4447-92ac-e4c54c2496b3","118620097","860765","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T13:55","1189968783","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110379023","38fdf979-3f8b-41fd-aaf8-bdcf4a8edd12","118620097","860762","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T12:34","1190037039","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583635002506250","d8afcaba-4c42-4cca-af08-499fe6fd3e07","118620097","860024","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:15","1190000375","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002504551","857af318-4b6b-46c4-b555-88d79a5d2a6f","118620097","860032","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:52","1189961321","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002505542","b2161e17-535a-4830-9d8a-ca812b9d8fa5","118620097","860736","Francinaldo de Brito Sousa","Entrega Realizada Normalmente","2026-11-04T09:08","1189973385","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002508934","30b03857-1c42-479c-bc02-319f8bfc18bf","118620097","860688","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:49","1190085829","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002505534","acef07b1-d5ce-4c73-babc-c901ee2e2235","118620097","860704","Claudio Raimundo Nonato","Em rota de entrega","2026-11-04T06:20","1189973404","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583635002506815","9eb8cf91-5d88-4951-94f9-67cf0e40cc6d","118620097","860689","Claudio Raimundo Nonato","Em rota de entrega","2026-11-04T06:20","1190013738","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583635002506711","8caf8a1c-3b72-4ffb-aa51-0eb4f8cbbbcf","118620097","860039","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T12:49","1190010080","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002504654","db0e0cd4-5e36-4ff6-b3a7-73da32cce402","118620097","860708","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:57","1189962495","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002505201","cb29a78f-776e-48f3-a671-5ec03f0d8747","118620097","860048","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T13:07","1189967600","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583535002503572","0efe549b-2858-4169-836f-a0eb05640aca","118620097","860729","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:20","1189949655","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110341428","95314c29-6bde-4591-ba4f-44c952eddda8","118620097","860757","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:28","1189959386","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583470110346456","fa98bbbc-614e-4e31-acb4-fbe2a3b14691","118620097","860164","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:16","1189963830","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583735002509004","b857b790-f784-49e5-afe6-e268c2242f9b","118620097","860405","DENIS ALVES RODRIGUES","Entrega Realizada Normalmente","2026-11-04T10:43","1190087910","7","2026-11-04T09:20","CONFIANCE LOGISTICA LTDA"],["1583670110399696","233c096a-f01f-4f18-ba06-c20e6a052ec6","118619726","860500","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190047719","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110378979","3dd442fb-ac3b-44c8-9723-170f649edd10","118619726","860033","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:45","1190036702","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002506240","f77e684c-a630-4e21-9fbf-be2372da1656","118619726","860168","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T14:38","1190000227","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583535002505602","612a3c3f-286c-404c-acb5-0282cedc23a1","118619726","860177","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T11:45","1189974629","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002507929","6e1369bb-b8fc-4e8b-b62d-078988582861","118619726","860025","Seginaldo Antonio da Silva","Entrega Realizada Normalmente","2026-11-04T12:14","1190058807","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110347398","387e0bc9-760f-4414-b4de-f8d7cf1b1ee8","118619726","860047","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:46","1189964611","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110358124","f61bdd3f-0341-439a-994b-9e765d486433","118619726","860031","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:14","1189960013","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110341471","ec2340c2-9901-4c32-8327-ffc5591c388b","118619726","860166","DENIS ALVES RODRIGUES","Entrega Realizada Normalmente","2026-11-04T14:47","1189959470","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110343450","037cdba8-7da4-40b1-b6ce-b1958c02d70e","118619726","860165","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1189961269","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002506109","559149f2-1958-43a2-bfac-a69d00f0180b","118619726","860040","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:49","1189998749","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110357819","a9499224-18d3-427d-8cae-c7e28f658b8b","118619726","860408","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T12:27","1189971546","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508760","22bbf6bf-6ee8-4c70-aadf-b736acc81ef9","118619726","860050","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T13:08","1190080453","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002507471","b6ac1316-4098-46d8-b17e-e86c1ad0459c","118619726","860041","PAULO VICTO TEIXEIRA RIBEIRO","Saiu para Entrega","2026-11-04T14:39","1190044254","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110341929","e125ca7d-e300-4e02-b701-9a40a325e3df","118619726","860175","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T13:53","1189959872","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110385855","66bce039-3c84-4c4e-9fe4-9dee759d31d8","118619726","860035","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T11:18","1190016843","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508875","ade550a0-12fd-461c-b081-6d6dec1a0210","118619726","860019","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:10","1190084199","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110358671","5e2b23b2-6ee6-4375-9e83-711e93067a3d","118619726","860167","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T13:24","1189972311","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110386309","56dc6fd9-9adf-4334-8e1c-ee18857b7b0a","118619726","860172","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:43","1190016966","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583570110362921","3e4911d4-26a1-4f51-b061-0c1f450d2af8","118619726","860049","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T12:44","1189974735","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583570110372623","4a841cd3-90db-4904-a29d-cc7934c4b917","118619726","860170","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:58","1189980010","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508399","83a55305-d568-4871-93b7-af0af9a80ca8","118619726","860044","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T14:11","1190071312","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508318","ef3a4cbb-118d-4630-b40b-15c338267ff7","118619726","860042","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:52","1190069045","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002507620","8f53f844-e831-41e8-8727-de35754641f4","118619726","860026","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:42","1190049692","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110421648","cc223db0-9aee-49cf-b151-2fec13f8d98b","118619726","860171","Silomi Matias Pereira","Endereço do Cliente Destino não Localizado","2026-11-04T12:29","1190086205","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110409762","3400d062-8d9c-4bb3-a13e-8af5675d27f7","118619726","860053","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T16:12","1190065840","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002509082","0c1a1d31-9f5f-4028-8926-569cc744f472","118619726","860020","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:20","1190090205","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583535002505607","74b05c97-23cd-4aa0-8362-fce3b1da69c6","118619726","860406","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:30","1189974641","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002505918","956ea574-6763-4917-b4f6-017169594b4b","118619726","860038","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T13:53","1189989141","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583570110371114","b0315056-0c33-4413-92a3-27584e6c314d","118619726","860037","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1189983637","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508404","d8c46628-529f-4f54-a605-a88ee956c479","118619726","860043","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T13:11","1190071288","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583570110364734","62e1172a-64b6-4e78-85c0-f7dcbe96d422","118619726","860173","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T11:32","1189966027","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110386535","b49daf6f-efc4-44d9-836b-606c6c129a4b","118619726","860178","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:08","1190018652","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583535002504564","2c19e2f1-9c37-4236-a2a4-dbdad2434da7","118619726","860179","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T08:41","1189961571","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110355371","28ea8ed2-d9ad-43c1-b86a-d628980dd0ed","118619726","860180","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:43","1189957471","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110389956","4f9af15d-d71a-4c7c-8bb5-9761e62d472e","118619726","860036","Francinaldo de Brito Sousa","1a Tentativa Cliente Ausente","2026-11-04T09:24","1190069136","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110381243","ec2bd158-4aeb-4fca-882d-560c096828d7","118619726","860057","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:08","1190005781","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110344835","4c6fbc29-5b16-4fdb-8432-6c9867ced09c","118619726","860176","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T10:56","1189962539","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110386054","57cc17e9-9950-42e2-9057-43f5aac9552a","118619726","860409","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:42","1190024140","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110382400","cfb76276-0f98-454f-9711-c7c396764928","118619726","860055","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:05","1190006792","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110388284","b7dbc727-2916-482f-ad1e-dfc5f657ab74","118619726","860052","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T09:03","1190066469","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508819","187aa14c-8017-4eb4-9753-77e5ab21c1d7","118619726","860051","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:22","1190082908","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110348628","1c080104-8400-4ea9-b827-d448e8e27dbd","118619726","860046","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T10:23","1189965345","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583635002506523","74e99da8-4b13-4073-920c-e15489f4a728","118619726","860169","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T08:54","1190004883","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002508584","cf05c248-5cdd-486c-b7fe-da592f1a168c","118619726","860045","Seginaldo Antonio da Silva","Entrega Realizada Normalmente","2026-11-04T14:17","1190076151","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583470110356909","1fb6b28a-3269-45f1-a3d6-9d867ee604c4","118619726","860174","JHOSENILSON FERNANDES VIANA","Entrega Realizada Normalmente","2026-11-04T15:11","1189970685","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583670110406757","b67bffbb-3ed0-4ad5-9648-e9921674a156","118619726","860021","Neusmar Jose da Silva","Entrega Realizada Normalmente","2026-11-04T11:13","1190061422","7","2026-11-04T09:21","CONFIANCE LOGISTICA LTDA"],["1583735002511509","bfc0f68e-b3a5-4631-910b-11f698dcf269","118620719","860899","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:03","1190172698","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110433166","a8810b22-8d35-4a62-8c2b-064396d356c7","118620719","860863","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:58","1190109578","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002511261","6c3c5d98-006c-4aa9-abbf-2c40b59eb992","118620719","860822","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:37","1190166898","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110413691","7b74e650-48d1-4fe4-acdc-8b57b74d66bf","118620719","860859","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:11","1190115821","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110442692","6f8720ac-524f-4ba6-a211-0f1e7c7dae72","118620719","860846","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:33","1190134857","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510713","cc8b02aa-c4ac-4b76-b114-8a1c4053e2fa","118620719","860908","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T15:54","1190148344","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110463912","d2c91b22-d60d-496f-a2cf-c5fae4a7a783","118620719","860906","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T11:40","1190182257","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110428308","cbf3a6d4-97cd-4bcc-8feb-032f8fde71d9","118620719","860907","Silomi Matias Pereira","Saiu para Entrega","2026-11-04T06:42","1190148260","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110433616","6a3b15aa-40b8-4cc8-9649-4d8c23feea9c","118620719","860845","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T13:54","1190110772","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110451018","d17d06f9-0b8c-41e8-8293-9dad1df70bc2","118620719","860898","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T16:12","1190157061","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002511604","b18c1825-94f7-4f5e-af37-e8b41cb7491d","118620719","860902","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:41","1190175731","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110461442","6f9047b9-4143-4ed6-9366-721d7e5a4f0e","118620719","860904","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190177673","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110434741","3fbdcbec-32f2-42d6-8d5f-2999db388102","118620719","860854","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:22","1190164260","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110439381","08965711-bc85-4fe2-ac9c-8f3cd60d64e8","118620719","860856","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:19","1190172301","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002509425","623bf9a9-b751-4fd2-bfef-bd662f03dc3b","118620719","860883","JHOSENILSON FERNANDES VIANA","1a Tentativa Cliente Ausente","2026-11-04T16:12","1190100455","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110434235","46cf90df-3f91-4f0b-b907-ea24c85dca1f","118620719","860876","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T16:22","1190163335","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510178","4d52520e-370b-4bfc-93ab-339319faffcf","118620719","860891","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:25","1190129255","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510600","a63a7010-58de-4a82-9aca-eaa8400ce3bb","118620719","860862","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T13:36","1190144826","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002509720","c91715df-5b03-4a6f-a102-9df3f255eb23","118620719","860886","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T12:03","1190111811","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110439801","55985384-b3ee-4f83-a18a-8989480773de","118620719","860864","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T12:22","1190127625","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110452393","66ec7450-b649-4370-b5fa-8b8115873ecf","118620719","860877","Seginaldo Antonio da Silva","Entrega Realizada Normalmente","2026-11-04T10:31","1190162875","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110445186","46eef3df-fb55-44d9-8108-0884a4957148","118620719","860884","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:36","1190180529","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110444104","abf68995-f499-4c2f-83ef-33cc3a27e3ed","118620719","860893","DOUGLAS NUNES LOPES","Entrega Realizada Normalmente","2026-11-04T12:06","1190138395","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110451530","7be7a416-ab6b-4c56-af60-8faa46998673","118620719","860875","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T09:29","1190159675","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002509843","e359e667-37ad-43c1-ae3a-08534805dca8","118620719","860885","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:57","1190117664","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110443057","bdca55dd-aa5b-43d7-b0cd-04114bca0e1b","118620719","860882","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T10:59","1190177727","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110415937","05635f56-00e1-4523-8efa-16f6be639caf","118620719","860848","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T13:31","1190121443","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110433610","2421896c-f997-4db8-9f32-68d007ea8a5a","118620719","860850","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190108150","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110414418","0d423f2a-c7a4-4862-adf6-dd6c3c8c0779","118620719","860890","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190117700","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002511512","dff149ff-f71d-4f51-bc2f-50a177bbe71d","118620719","860900","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:15","1190172717","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510920","2bf5348a-48af-4ceb-a672-b0fc59f60b57","118620719","860855","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190156633","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510382","e49486aa-5ac0-4e2f-97b1-e5a418b0ea59","118620719","860894","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:32","1190136864","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110458060","652f4eda-680c-4be8-bdc8-9abc78af3c95","118620719","860901","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T11:40","1190173173","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110427273","624b7915-f007-4bb1-b2a7-ccebcbdde777","118620719","860895","DOUGLAS NUNES LOPES","Saiu para Entrega","2026-11-04T10:50","1190145806","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002509828","2f993119-1021-4619-ab35-071af976a08e","118620719","860887","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T10:08","1190115273","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110438576","4ba7c14f-2136-4182-8cec-6dcdd2a9cd2f","118620719","860858","Claudio Raimundo Nonato","Em rota de entrega","2026-11-04T06:22","1190124103","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002510347","ecf15fd1-9c9f-4408-a78f-62bde04a827d","118620719","860892","Wanderson Pereira da Silva","Entrega Realizada Normalmente","2026-11-04T11:12","1190134925","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110437911","0d4cbd96-cfb9-4c4a-8c51-a283196dc9e5","118620719","860861","Adriana Alves Pedro","Entrega Realizada Normalmente","2026-11-04T09:31","1190120610","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110427907","d52c4973-21fd-4f00-bbc6-b5d5de608bdf","118620719","860896","Silomi Matias Pereira","Entrega Realizada Normalmente","2026-11-04T12:29","1190147443","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583770110447751","47bbba48-adff-46b2-bced-654d6d72bd16","118620719","860849","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:56","1190184113","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110408196","00e34718-b4bf-4c4c-962a-79238dc70b81","118620719","860853","PAULO VICTO TEIXEIRA RIBEIRO","Entrega Realizada Normalmente","2026-11-04T14:39","1190105110","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583735002509635","207bcdd7-c988-4bfc-b98a-69b9f73f1634","118620719","860889","Wanderson Pereira da Silva","Saiu para Entrega","2026-11-04T09:07","1190108023","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110408380","044079db-e3ce-486c-b476-9a5f8ca1a9aa","118620719","860888","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T14:09","1190105598","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110424402","abd91fe7-d822-4ba2-bb36-a394bd4a28d0","118620719","860857","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T15:27","1190138970","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110432070","18f9c1df-b33b-4184-b3b4-17089222a085","118620719","860860","Aleksandra Borges Souza","Entrega Realizada Normalmente","2026-11-04T08:43","1190104704","7","2026-11-04T09:22","CONFIANCE LOGISTICA LTDA"],["1583670110379937","cd602242-0c6e-4b6c-b5e9-102d69105087","118618894","860161","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1190041179","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1583235002496718","2acb6250-a23c-40d7-b16a-cf8108dcfadc","118618894","860150","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189838426","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1582935002491387","567ac2f7-bf15-4d0b-9576-563383917430","118618894","860149","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189737699","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1583535002503756","7df91c4d-a88f-4dc5-9e19-410f54a9d1af","118618894","860147","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189951846","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1583570110368371","830c3ea2-2d45-4379-9a2c-c8e2cc4b5aaf","118618894","860148","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189978455","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1583370110291230","337b2fc2-5817-4714-a6f1-09d1fdd1304b","118618894","860135","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189887995","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1583470110314933","bdc80767-0724-46e0-8179-37c14f4d0ada","118618894","860136","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189897893","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1582670110123752","92b33d8e-5087-47ec-82b3-7aa3c30ffdda","118618894","860104","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189548687","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1582870110165342","6cf149de-e8fa-4860-8456-8bf974a0be4b","118618894","860105","MAIKE SILVA CARDOSO","Entrega Realizada Normalmente","2026-11-04T15:36","1189680498","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1582570110076419","db5e33fc-ac2d-4870-bc41-3d80629940f8","118618894","860102","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189490170","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1582670110089704","c919e059-f882-4764-8c6f-a9af2436e808","118618894","860103","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:55","1189516728","7","2026-11-04T16:55","CONFIANCE LOGISTICA LTDA"],["1189618354","e15a39ac-b3cc-4e44-b1cb-e11d8149f0bf","118618897","860112","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:56","1189618355","7","2026-11-04T16:56","CONFIANCE LOGISTICA LTDA"],["1581570109243706","53fbbb2d-0a74-40b6-9cff-f15633431141","118618203","83361","LUCAS BIANO MUNIS","Em rota de entrega","2026-11-04T13:56","","5","2026-11-04T16:56","CONFIANCE LOGISTICA LTDA"]];
+const EMBED_NAME = "20261104162752-33695270000113-entregas.xls";
+let RAW = [], SRC = '';
+const $ = id => document.getElementById(id);
+const tip = $('tip');
+const pct = (x,d=2) => isFinite(x) ? (x*100).toFixed(d).replace('.',',')+'%' : '—';
+const num = (x,d=1) => isFinite(x) ? x.toFixed(d).replace('.',',') : '—';
+const hhmm = d => d ? String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') : '—';
+const dur = m => !isFinite(m) ? '—' : (m>=60 ? Math.floor(m/60)+'h'+String(Math.round(m%60)).padStart(2,'0') : Math.round(m)+' min');
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;const x=Math.min(e.clientX+14,innerWidth-290);tip.style.left=x+'px';tip.style.top=(e.clientY+14)+'px';}
+function hideTip(){tip.style.opacity=0;}
+document.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(t)showTip(e,t.getAttribute('data-tip'));else hideTip();});
+
+/* ---------- classificação de status ---------- */
+function cls(tipo){
+  const t=norm(tipo);
+  if(t.includes('entrega realizada')||t==='entregue'||t.includes('entregue ao')) return 'ENT';
+  if(t.includes('saiu para entrega')||t.includes('em rota')||t.includes('em transito')) return 'PEN';
+  if(t.includes('troca de transportadora')) return 'EXC';
+  return 'INS';
+}
+
+/* ---------- datas ---------- */
+function parseDate(v){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return isNaN(v)?null:v;
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*864e5));return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds());}
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}T.*(Z|[+-]\d{2}:?\d{2})$/.test(s)){const d=new Date(s);return isNaN(d)?null:d;} // ISO com fuso (base salva no navegador)
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){let y=+m[3];if(y<100)y+=2000;return new Date(y,m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));}
+  const d=new Date(s);return isNaN(d)?null:d;
+}
+
+/* ---------- leitura da planilha ---------- */
+function rowsFromSheet(json){
+  if(!json.length) throw new Error('Planilha vazia.');
+  const keys=Object.keys(json[0]);
+  const find=(...c)=>keys.find(k=>c.some(x=>norm(k)===x))||keys.find(k=>c.some(x=>norm(k).includes(x)));
+  const K={pint:keys.find(k=>norm(k)==='pedido'),serie:find('numero de serie','serie'),imp:find('data importacao pedido','data importacao'),transp:find('transportador'),ped:find('pedido cliente'),uuid:find('uuid'),rom:find('romaneio'),nf:find('nota fiscal'),ent:find('entregador'),tipo:find('tipo'),cap:find('data de captura'),proc:find('data de processamento')};
+  const miss=['ent','tipo','cap'].filter(k=>!K[k]&&!(k==='cap'&&K.proc));
+  if(miss.length) throw new Error('Colunas obrigatórias não encontradas: Entregador, Tipo, Data de Captura.');
+  return json.map(r=>({ped:String(r[K.ped]??''),uuid:String(r[K.uuid]??''),rom:String(r[K.rom]??''),nf:String(r[K.nf]??''),ent:String(r[K.ent]||'(sem entregador)').trim(),pint:fmtId(r[K.pint]),serie:String(r[K.serie]??''),imp:parseDate(r[K.imp]),transp:String(r[K.transp]??''),tipo:String(r[K.tipo]??'').trim(),t:parseDate(r[K.cap]??r[K.proc])||parseDate(r[K.proc])}));
+}
+function fmtId(v){if(v==null||v==='')return '';if(typeof v==='number')return String(Math.round(v));return String(v).replace(/\.0+$/,'');}
+function fromArr(r){return {ped:r[0],uuid:r[1],rom:r[2],nf:r[3],ent:r[4],tipo:r[5],t:r[6]?parseDate(r[6]):null,pint:r[7]||'',serie:r[8]||'',imp:r[9]?parseDate(r[9]):null,transp:r[10]||''};}
+function fromEmbed(a){return a.map(fromArr);}
+
+/* Região: motoristas com estes nomes = INTERIOR; demais = CAPITAL (comparação por palavra inteira do nome) */
+const INTERIOR_NOMES=['rodrigo','wilson','lucas'];
+function regiao(nome){const w=norm(nome).split(/\s+/);return INTERIOR_NOMES.some(n=>w.includes(n))?'INTERIOR':'CAPITAL';}
+const REG_LAB={GERAL:'Geral',CAPITAL:'Capital',INTERIOR:'Interior'};
+let VIEW='GERAL';
+function dedupe(rows){ // 1 linha por pedido: mantém o evento mais recente
+  const m=new Map();
+  rows.forEach(r=>{const k=r.uuid||r.ped||Math.random();const p=m.get(k);if(!p||(r.t&&(!p.t||r.t>p.t)))m.set(k,r);});
+  return [...m.values()].map(r=>({...r,c:cls(r.tipo),reg:regiao(r.ent)}));
+}
+
+function load(rows,src,save){
+  RAW=dedupe(rows);SRC=src;
+  if(save){try{localStorage.setItem('nsPainelBase',JSON.stringify({src,rows:rows.map(r=>[r.ped,r.uuid,r.rom,r.nf,r.ent,r.tipo,r.t?r.t.toISOString():null,r.pint,r.serie,r.imp?r.imp.toISOString():null,r.transp])}));}catch(e){}}
+  fillFilters();render();
+}
+
+$('file').addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0]);e.target.value='';});
+function readFile(f){
+  if(!window.XLSX){$('msg').textContent='Leitor de Excel não carregou (sem internet?). Abra o painel com internet para carregar novas bases.';return;}
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:false});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=rowsFromSheet(XLSX.utils.sheet_to_json(ws,{defval:'',raw:true}));
+      load(rows,f.name,true);$('msg').textContent='';
+    }catch(err){$('msg').textContent='Erro ao ler arquivo: '+err.message;}
+  };
+  fr.readAsArrayBuffer(f);
+}
+let dragN=0;
+addEventListener('dragenter',e=>{e.preventDefault();dragN++;$('drop').style.display='flex';});
+addEventListener('dragleave',e=>{dragN--;if(dragN<=0)$('drop').style.display='none';});
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();dragN=0;$('drop').style.display='none';const f=e.dataTransfer.files[0];if(f)readFile(f);});
+function setTheme(t){document.documentElement.dataset.theme=t;$('btnTheme').textContent=t==='dark'?'☀ Tema claro':'🌙 Tema escuro';try{localStorage.setItem('nsPainelTema',t);}catch(e){}}
+$('btnTheme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+(function(){let t=null;try{t=localStorage.getItem('nsPainelTema');}catch(e){}setTheme(t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));})();
+
+/* ---------- filtros ---------- */
+function fillFilters(){
+  const cur=$('fEnt').value;
+  const ents=[...new Set(RAW.filter(r=>VIEW==='GERAL'||r.reg===VIEW).map(r=>r.ent))].sort((a,b)=>a.localeCompare(b));
+  $('fEnt').innerHTML='<option value="">Todos</option>'+ents.map(e=>`<option ${e===cur?'selected':''}>${esc(e)}</option>`).join('');
+}
+['fEnt'].forEach(id=>$(id).addEventListener('input',render));
+
+/* ---------- cálculo ---------- */
+function stats(rows,exclTroca){
+  const base=rows.filter(r=>!(exclTroca&&r.c==='EXC'));
+  const ent=base.filter(r=>r.c==='ENT').length,pen=base.filter(r=>r.c==='PEN').length;
+  const ins=base.length-ent-pen;
+  return {n:base.length,ent,pen,ins,ns:base.length?ent/base.length:NaN,teto:base.length?(ent+pen)/base.length:NaN,base};
+}
+function driverStats(rows,ref,exclTroca){
+  const by=new Map();rows.forEach(r=>{if(!by.has(r.ent))by.set(r.ent,[]);by.get(r.ent).push(r);});
+  return [...by.entries()].map(([ent,rs])=>{
+    const s=stats(rs,exclTroca);
+    const dl=rs.filter(r=>r.c==='ENT'&&r.t).map(r=>r.t).sort((a,b)=>a-b);
+    const iv=[];for(let i=1;i<dl.length;i++)iv.push((dl[i]-dl[i-1])/6e4);
+    const span=dl.length>1?(dl[dl.length-1]-dl[0])/6e4:NaN;
+    const avg=dl.length>1?span/(dl.length-1):NaN;
+    const lastEv=rs.filter(r=>r.t).reduce((m,r)=>!m||r.t>m?r.t:m,null);
+    const idle=lastEv?(ref-lastEv)/6e4:NaN;
+    const sortedIv=[...iv].sort((a,b)=>a-b);
+    const med=sortedIv.length?(sortedIv.length%2?sortedIv[(sortedIv.length-1)/2]:(sortedIv[sortedIv.length/2-1]+sortedIv[sortedIv.length/2])/2):NaN;
+    return {nome:ent,reg:regiao(ent),rs,...s,first:dl[0],last:dl[dl.length-1],span,avg,med,maxIv:iv.length?Math.max(...iv):NaN,perH:dl.length>=3&&avg>0?60/avg:NaN,idle,lastEv,iv};
+  });
+}
+
+/* ---------- render ---------- */
+const META=0.985, GAP=60; let sortState={}, CUR=[], REF=new Date();
+function render(){
+  const meta=META, gap=GAP;
+  const excl=false;
+  const fE=$('fEnt').value;
+  const rows=RAW.filter(r=>(VIEW==='GERAL'||r.reg===VIEW)&&(!fE||r.ent===fE));
+  const allT=RAW.filter(r=>r.t).map(r=>r.t);
+  const ref=allT.length?new Date(Math.max(...allT)):new Date();
+  CUR=rows;REF=ref;
+  regPanel(ref,meta);
+  $('viewLab').innerHTML=`Visão atual: <b>${REG_LAB[VIEW]}</b>${fE?' · '+esc(fE):''} — indicadores, gráficos e tabelas abaixo seguem esta seleção.`;
+  const S=stats(rows,excl);
+  const D=driverStats(rows,ref,excl);
+  $('subt').textContent=`Base: ${SRC} · ${RAW.length} pedidos · hora de referência ${ref.toLocaleDateString('pt-BR')} ${hhmm(ref)} (último evento da base)`;
+
+  // KPIs
+  const need=Math.max(0,Math.ceil(meta*S.n-1e-9)-S.ent);
+  const allDl=rows.filter(r=>r.c==='ENT'&&r.t).map(r=>r.t).sort((a,b)=>a-b);
+  const opSpanH=allDl.length>1?(allDl[allDl.length-1]-allDl[0])/36e5:NaN;
+  const opPerH=allDl.length>1?allDl.length/opSpanH:NaN;
+  const ivAll=D.flatMap(d=>d.iv).sort((a,b)=>a-b);
+  const medAll=ivAll.length?ivAll[Math.floor(ivAll.length/2)]:NaN;
+  const prodAvg=D.filter(d=>isFinite(d.perH)&&d.ent>=3);
+  const avgPerH=prodAvg.length?prodAvg.reduce((a,d)=>a+d.perH,0)/prodAvg.length:NaN;
+  const nsCls=S.ns>=meta?'ok':(S.teto>=meta?'warn':'bad');
+  const tetoBadge=S.teto>=meta?'<span class="badge ok">✓ meta ainda possível</span>':'<span class="badge bad">✕ meta inalcançável hoje</span>';
+  $('kpis').innerHTML=[
+    `<div class="kpi hero ${nsCls}"><div class="l">NS atual (entregues ÷ base)</div><div class="v">${pct(S.ns)}</div><div class="d">Meta ${pct(meta)} · ${S.ns>=meta?'<span class="badge ok">✓ na meta</span>':`<span class="badge ${nsCls==='bad'?'bad':'warn'}">${num((S.ns-meta)*100,2)} p.p.</span>`}</div></div>`,
+    `<div class="kpi hero ${S.teto>=meta?'ok':'bad'}"><div class="l">Teto do dia (se todo pendente for entregue)</div><div class="v">${pct(S.teto)}</div><div class="d">${tetoBadge}</div></div>`,
+    `<div class="kpi"><div class="l">Faltam para a meta</div><div class="v">${need}</div><div class="d">entregas · ${S.pen} ainda em rua</div></div>`,
+    `<div class="kpi"><div class="l">Base do NS</div><div class="v">${S.n}</div><div class="d"><span class="badge ok">✓ ${S.ent} entregues</span> <span class="badge neutral">${S.pen} em rua</span> <span class="badge bad">${S.ins} insuc./troca</span></div></div>`,
+    `<div class="kpi"><div class="l">Entregas/hora – operação</div><div class="v">${num(opPerH)}</div><div class="d">${allDl.length>1?`${allDl.length} baixas em ${num(opSpanH)}h (${hhmm(allDl[0])}–${hhmm(allDl[allDl.length-1])})`:'sem entregas suficientes ainda'}</div></div>`,
+    `<div class="kpi"><div class="l">Entregas/hora – média por entregador</div><div class="v">${num(avgPerH)}</div><div class="d">entregadores com ≥3 entregas</div></div>`,
+    `<div class="kpi"><div class="l">Tempo entre entregas (mediana)</div><div class="v">${dur(medAll)}</div><div class="d">intervalo típico entre baixas do mesmo entregador</div></div>`
+  ].join('');
+
+  // Alertas
+  const al=[];
+  if(S.teto<meta) al.push(`<b>Meta comprometida:</b> com ${S.ins} pedido(s) não entregável(is) hoje (insucesso/troca), o NS máximo possível hoje é ${pct(S.teto)}. Cada pedido entregue ainda vale ${num(100/S.n,2)} p.p.`);
+  D.filter(d=>d.pen>0&&d.idle>gap).sort((a,b)=>b.idle-a.idle).forEach(d=>al.push(`<b>${esc(d.nome)}</b>: ${d.pen} pedido(s) em rua e <b>sem nenhuma baixa há ${dur(d.idle)}</b> (último evento ${hhmm(d.lastEv)}${d.ent===0?'; nenhuma entrega no dia':''}).`));
+  D.filter(d=>d.pen>0&&d.ent===0&&d.idle<=gap).forEach(d=>al.push(`<b>${esc(d.nome)}</b>: ${d.pen} pedido(s) em rua e nenhuma entrega registrada ainda.`));
+  $('alerts').innerHTML=al.length?`<div class="alert"><b>⚠ Pontos de atenção (${al.length})</b><ul>${al.map(a=>`<li>${a}</li>`).join('')}</ul></div>`:`<div class="alert okb">✓ Nenhum ponto crítico com os filtros atuais.</div>`;
+
+  // Horas
+  const hrs=allDl.map(t=>t.getHours());
+  const h0=hrs.length?Math.min(...hrs):8,h1=Math.max(hrs.length?Math.max(...hrs):17,ref.getHours());
+  const H=[];for(let h=h0;h<=h1;h++)H.push(h);
+  const cnt=H.map(h=>hrs.filter(x=>x===h).length);
+  const avgH=cnt.length?cnt.reduce((a,b)=>a+b,0)/cnt.length:0;
+  $('chHour').innerHTML=barChart(H.map(h=>String(h).padStart(2,'0')+'h'),cnt,(l,v)=>`${l}: <b>${v}</b> entregas<br>${v>=avgH?'▲ acima':'▼ abaixo'} da média (${num(avgH)}/h)`,avgH);
+  let acc=0;const nsH=H.map((h,i)=>{acc+=cnt[i];return S.n?acc/S.n:0;});
+  $('chNs').innerHTML=lineChart(H.map(h=>String(h+1).padStart(2,'0')+'h'),nsH,meta,(l,v,i)=>`Até ${l}: <b>${pct(v)}</b> (${H.slice(0,i+1).reduce((a,_,j)=>a+cnt[j],0)} entregues)`);
+
+  drvTable(D,gap);
+  tipoTable(rows);
+  pendTable(rows,ref,gap);
+  destaque(ref,excl);
+  $('foot').innerHTML=`Região: Interior = motoristas com Rodrigo, Wilson ou Lucas no nome (palavra inteira; "Rodrigues" não conta); demais = Capital. Regras: NS = pedidos com status "Entrega Realizada" ÷ total geral de pedidos da base (todos os status, inclusive troca de transportadora). Base deduplicada por UUID (fica o evento mais recente). Meta de NS: 98,50%. Alerta de entregador sem baixa: acima de 60 min. Média por hora = entregas ÷ horas entre a 1ª hora com entrega e a hora atual da base (a hora em andamento conta como hora cheia). Insucesso = qualquer status que não seja entrega nem saída/em rota (troca de transportadora entra como não entregue). A hora de referência é o último evento registrado na base, não o relógio do computador.`;
+}
+
+/* ---------- gráficos SVG ---------- */
+function barChart(labels,vals,tipf,avg){
+  const W=640,Hh=230,ml=34,mr=8,mt=14,mb=26,iw=W-ml-mr,ih=Hh-mt-mb;
+  const mx=Math.max(1,...vals),step=niceStep(mx),top=Math.ceil(mx/step)*step;
+  const bw=iw/labels.length,w=Math.min(40,bw*.62);
+  let g='';for(let v=0;v<=top;v+=step){const y=mt+ih-v/top*ih;g+=`<line x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}" stroke="var(--grid)"/><text x="${ml-6}" y="${y+4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${v}</text>`;}
+  const best=vals.indexOf(mx);
+  labels.forEach((l,i)=>{const v=vals[i],h=v/top*ih,x=ml+bw*i+(bw-w)/2,y=mt+ih-h;
+    g+=`<rect x="${ml+bw*i}" y="${mt}" width="${bw}" height="${ih}" fill="transparent" data-tip="${esc(tipf(l,v))}"/>`;
+    if(v>0)g+=`<path d="${topRound(x,y,w,h,4)}" fill="var(--series-1)" pointer-events="none"/>`;
+    if(i===best&&v>0)g+=`<text x="${x+w/2}" y="${y-4}" font-size="11" text-anchor="middle" fill="var(--text-secondary)" font-weight="600">${v}</text>`;
+    g+=`<text x="${x+w/2}" y="${Hh-8}" font-size="11" text-anchor="middle" fill="var(--text-muted)">${l}</text>`;});
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${mt+ih}" y2="${mt+ih}" stroke="var(--axis)"/>`;
+  if(avg>0){const ya=mt+ih-avg/top*ih;g+=`<line x1="${ml}" x2="${W-mr}" y1="${ya}" y2="${ya}" stroke="var(--text-primary)" stroke-dasharray="5 4" stroke-width="1.5" pointer-events="none"/><rect x="${W-mr-92}" y="${ya-19}" width="92" height="16" rx="3" fill="var(--surface-1)" opacity=".9"/><text x="${W-mr-4}" y="${ya-7}" font-size="11" text-anchor="end" font-weight="600" fill="var(--text-primary)">Média ${num(avg)}/h</text>`;}
+  return `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Entregas por hora">${g}</svg>`;
+}
+function lineChart(labels,vals,meta,tipf){
+  const W=640,Hh=230,ml=44,mr=12,mt=14,mb=26,iw=W-ml-mr,ih=Hh-mt-mb;
+  const x=i=>ml+(labels.length>1?i/(labels.length-1)*iw:iw/2),y=v=>mt+ih-v*ih;
+  let g='';[0,.25,.5,.75,1].forEach(v=>{g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${ml-6}" y="${y(v)+4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${v*100}%</text>`;});
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(meta)}" y2="${y(meta)}" stroke="var(--critical)" stroke-dasharray="5 4" stroke-width="1.5"/><text x="${W-mr}" y="${y(meta)-5}" font-size="11" text-anchor="end" fill="var(--text-secondary)">Meta ${pct(meta)}</text>`;
+  g+=`<polyline fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" points="${vals.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>`;
+  vals.forEach((v,i)=>{g+=`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>`;
+    const bw=iw/Math.max(1,labels.length-1);g+=`<rect x="${x(i)-bw/2}" y="${mt}" width="${bw}" height="${ih}" fill="transparent" data-tip="${esc(tipf(labels[i],v,i))}"/>`;
+    g+=`<text x="${x(i)}" y="${Hh-8}" font-size="11" text-anchor="middle" fill="var(--text-muted)">${labels[i]}</text>`;});
+  const L=vals.length-1;if(L>=0)g+=`<text x="${x(L)-8}" y="${y(vals[L])+16}" font-size="12" text-anchor="end" font-weight="600" fill="var(--text-primary)">${pct(vals[L],1)}</text>`;
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${mt+ih}" y2="${mt+ih}" stroke="var(--axis)"/>`;
+  return `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="NS acumulado">${g}</svg>`;
+}
+function niceStep(m){const r=m/4,p=Math.pow(10,Math.floor(Math.log10(r)));return [1,2,5,10].map(k=>k*p).find(s=>s>=r)||p*10;}
+function topRound(x,y,w,h,r){r=Math.min(r,h,w/2);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`;}
+
+/* ---------- tabelas ---------- */
+function sortable(id,cols,data,defaultKey,defaultDir){
+  if(!sortState[id])sortState[id]={k:defaultKey,d:defaultDir};
+  const st=sortState[id];
+  const sorted=[...data].sort((a,b)=>{let x=a[st.k],y=b[st.k];if(x instanceof Date)x=+x;if(y instanceof Date)y=+y;
+    const nx=!isFinite(x)&&typeof x!=='string',ny=!isFinite(y)&&typeof y!=='string';if(nx&&ny)return 0;if(nx)return 1;if(ny)return -1;
+    return (typeof x==='string'?x.localeCompare(y):x-y)*st.d;});
+  const el=$(id);
+  el.innerHTML=`<thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}" data-k="${c.k}">${c.h}${st.k===c.k?(st.d>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${sorted.map(r=>`<tr>${cols.map(c=>`<td class="${c.num?'num':''}">${c.f?c.f(r):esc(r[c.k])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  el.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;st.d=st.k===k?-st.d:(typeof data[0]?.[k]==='string'?1:-1);st.k=k;render();});
+}
+function drvTable(D,gap){
+  const meta=META;
+  const mx=Math.max(1,...D.map(d=>d.perH).filter(isFinite));
+    sortable('tDrv',[
+    {k:'nome',h:'Entregador'},
+    {k:'reg',h:'Região',f:d=>REG_LAB[d.reg]},
+    {k:'n',h:'Pedidos',num:1},
+    {k:'mix',h:'Status',f:d=>`<div class="stack" data-tip="${esc(d.nome)}: ${d.ent} entregues · ${d.pen} em rua · ${d.ins} insucesso(s)">${seg(d.ent,d.n,'var(--good)')}${seg(d.pen,d.n,'var(--pending)')}${seg(d.ins,d.n,'var(--critical)')}</div>`},
+    {k:'ent',h:'Entregues',num:1},
+    {k:'pen',h:'Em rua',num:1},
+    {k:'ins',h:'Insuc.',num:1,f:d=>d.ins?`<button class="btn small insb" data-ins="${esc(d.nome)}" title="Ver motivos">${d.ins} 🔍</button>`:'0'},
+    {k:'ns',h:'NS',num:1,f:d=>`<span class="badge ${d.ns>=meta?'ok':d.ns>=.9?'warn':'bad'}">${pct(d.ns,1)}</span>`},
+    {k:'first',h:'1ª<br>entrega',num:1,f:d=>hhmm(d.first)},
+    {k:'last',h:'Última',num:1,f:d=>hhmm(d.last)},
+    {k:'perH',h:'Entregas/h',num:1,f:d=>isFinite(d.perH)?`<span class="minibar" style="width:${Math.max(2,d.perH/mx*70)}px"></span>${num(d.perH)}`:'—'},
+    {k:'avg',h:'Interv.<br>médio',num:1,f:d=>dur(d.avg)},
+    {k:'med',h:'Interv. típico<br>(mediana)',num:1,f:d=>dur(d.med)},
+    {k:'maxIv',h:'Maior<br>interv.',num:1,f:d=>d.maxIv>gap?`<b style="color:var(--b-bad-t)">${dur(d.maxIv)}</b>`:dur(d.maxIv)},
+    {k:'idle',h:'Sem baixa há',num:1,f:d=>d.pen>0?(d.idle>gap?`<span class="badge bad">⚠ ${dur(d.idle)}</span>`:`<span class="badge neutral">${dur(d.idle)}</span>`):'<span class="badge ok">✓ rota concluída</span>'}
+  ],D.map(d=>({...d,mix:d.n?d.ent/d.n:0})),'ent',-1);
+}
+function seg(v,n,c){return v?`<span style="width:${v/n*100}%;background:${c}"></span>`:'';}
+function drvList(rs){const m=new Map();rs.forEach(r=>m.set(r.ent,(m.get(r.ent)||0)+1));return [...m.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));}
+function tipoTable(all){
+  const rows=all.filter(r=>r.c!=='ENT');const m=new Map();rows.forEach(r=>m.set(r.tipo,(m.get(r.tipo)||0)+1));
+  const lab={ENT:'<span class="badge ok">✓ Entregue</span>',PEN:'<span class="badge neutral">Em rua</span>',INS:'<span class="badge bad">✕ Insucesso</span>',EXC:'<span class="badge warn">Troca transp.</span>'};
+  const data=[...m.entries()].map(([tipo,n])=>({tipo,n,p:n/all.length,c:cls(tipo),drv:drvList(rows.filter(r=>r.tipo===tipo))}));
+  const mx=Math.max(1,...data.map(d=>d.n));
+  sortable('tTipo',[{k:'tipo',h:'Status'},{k:'c',h:'Grupo',f:d=>lab[d.c]},{k:'n',h:'Pedidos',num:1,f:d=>`<span class="minibar" style="width:${d.n/mx*80}px"></span>${d.n}`},{k:'p',h:'% base',num:1,f:d=>pct(d.p,1)},
+    {k:'drvTxt',h:'Motoristas (qtd. de pedidos)',f:d=>`<div class="drvs">${d.drv.map(([n,q])=>`<span>${esc(n)} <b>(${q})</b></span>`).join('')}</div>`}],data.map(d=>({...d,drvTxt:d.drv.map(x=>x[0]).join(', ')})),'n',-1);
+}
+let PEND=[];
+function pendTable(rows,ref,gap){
+  const lastBy=new Map();RAW.forEach(r=>{if(r.c==='ENT'&&r.t&&(!lastBy.get(r.ent)||r.t>lastBy.get(r.ent)))lastBy.set(r.ent,r.t);});
+  PEND=rows.filter(r=>r.c!=='ENT').map(r=>({...r,idle:r.t?(ref-r.t)/6e4:NaN,lastDrv:lastBy.get(r.ent)}));
+  const lab={PEN:'neutral',INS:'bad',EXC:'warn'};
+  sortable('tPend',[{k:'idle',h:'Sem movimentação',num:1,f:d=>d.idle>gap?`<span class="badge bad">⚠ ${dur(d.idle)}</span>`:dur(d.idle)},
+    {k:'tipo',h:'Status',f:d=>`<span class="badge ${lab[d.c]}">${esc(d.tipo)}</span>`},{k:'ent',h:'Entregador'},{k:'reg',h:'Região',f:d=>REG_LAB[d.reg]},{k:'ped',h:'Pedido cliente'},{k:'nf',h:'NF'},{k:'rom',h:'Romaneio'},{k:'t',h:'Evento do pedido',f:d=>hhmm(d.t)},{k:'lastDrv',h:'Últ. baixa do entregador',f:d=>hhmm(d.lastDrv)},{k:'wa',h:'',f:d=>d.c==='EXC'?'':`<button class="btn small wa mini" data-wa="${esc(d.ent)}" title="Enviar pendências deste motorista">📲</button>`}],PEND,'idle',-1);
+}
+/* ---------- painel por região ---------- */
+function regPanel(ref,meta){
+  document.querySelectorAll('#regTabs button').forEach(b=>b.classList.toggle('on',b.dataset.reg===VIEW));
+  $('regs').innerHTML=['GERAL','CAPITAL','INTERIOR'].map(k=>{
+    const rs=RAW.filter(r=>k==='GERAL'||r.reg===k);const S=stats(rs,false);
+    const dl=rs.filter(r=>r.c==='ENT'&&r.t).map(r=>r.t).sort((a,b)=>a-b);
+    const perH=dl.length>1?dl.length/((dl[dl.length-1]-dl[0])/36e5):NaN;
+    const need=Math.max(0,Math.ceil(meta*S.n-1e-9)-S.ent);
+    const c=!S.n?'':S.ns>=meta?'ok':(S.teto>=meta?'warn':'bad');
+    const drv=new Set(rs.map(r=>r.ent)).size;
+    const badge=!S.n?'<span class="badge neutral">sem pedidos</span>':S.ns>=meta?'<span class="badge ok">✓ meta</span>':S.teto>=meta?'<span class="badge warn">possível</span>':'<span class="badge bad">✕ inalcançável</span>';
+    return `<div class="reg ${c} ${k===VIEW?'on':''}" data-reg="${k}" data-tip="${REG_LAB[k]}: ${S.ent} entregues ÷ ${S.n} pedidos · ${drv} motorista(s)<br>${S.n?num((S.ns-meta)*100,2):'—'} p.p. vs meta · ${num(perH)} entregas/h">
+      <div class="l"><h3>${REG_LAB[k]}</h3><div class="v">${S.n?pct(S.ns):'—'}</div><div style="font-size:11px;color:var(--text-muted)">${S.ent}/${S.n}</div></div>
+      <div class="g"><div><b>${S.n?pct(S.teto,1):'—'}</b>teto</div><div><b>${need}</b>faltam</div><div><b>${S.pen}</b>em rua</div><div><b>${S.ins}</b>insuc.</div></div>
+      <div style="margin-left:auto">${badge}</div></div>`;}).join('');
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-reg]');if(!b)return;VIEW=b.dataset.reg;$('fEnt').value='';fillFilters();render();});
+
+/* ---------- exportação ---------- */
+const PEND_H=['Pedido Cliente','Pedido','NF','Série','Romaneio','Entregador','Região','Transportador','Status','Grupo','Importação do pedido','Último evento do pedido','Min sem movimentação','Última baixa do entregador'];
+const GRP={ENT:'Entregue',PEN:'Em rua',INS:'Insucesso',EXC:'Troca transp.'};
+const dt=d=>d?d.toLocaleDateString('pt-BR')+' '+hhmm(d):'';
+const pedRow=(r,ref)=>[r.ped,r.pint,r.nf,r.serie,r.rom,r.ent,REG_LAB[r.reg],r.transp,r.tipo,GRP[r.c],dt(r.imp),dt(r.t),r.t?Math.round((ref-r.t)/6e4):'',dt(r.lastDrv)];
+function stamp(){const d=REF||new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+hhmm(d).replace(':','');}
+function dlCsv(name,aoa){const lines=aoa.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';'));
+  const b=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name+'.csv';a.click();}
+function dlXlsx(name,sheets){
+  if(window.XLSX){const wb=XLSX.utils.book_new();sheets.forEach(sh=>{const ws=XLSX.utils.aoa_to_sheet(sh.aoa);ws['!cols']=sh.aoa[0].map((_,c)=>({wch:Math.min(45,Math.max(10,...sh.aoa.map(r=>String(r[c]??'').length+2)))}));XLSX.utils.book_append_sheet(wb,ws,sh.name);});XLSX.writeFile(wb,name+'.xlsx');return;}
+  // sem internet: gera .xls (HTML) que o Excel abre
+  const html='<html><head><meta charset="utf-8"></head><body>'+sheets.map(sh=>'<h3>'+esc(sh.name)+'</h3><table border="1">'+sh.aoa.map((r,i)=>'<tr>'+r.map(v=>(i?'<td style="mso-number-format:\'\\@\'">':'<th>')+esc(v)+(i?'</td>':'</th>')).join('')+'</tr>').join('')+'</table>').join('<br>')+'</body></html>';
+  const b=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name+'.xls';a.click();
+}
+function tipoSheets(){
+  const all=CUR, rows=CUR.filter(r=>r.c!=='ENT'), m=new Map();rows.forEach(r=>m.set(r.tipo,(m.get(r.tipo)||0)+1));
+  const res=[['Status','Grupo','Pedidos','% da base','Motoristas (qtd.)']].concat([...m.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>[t,GRP[cls(t)],n,(n/all.length*100).toFixed(1).replace('.',',')+'%',drvList(rows.filter(r=>r.tipo===t)).map(([a,q])=>a+' ('+q+')').join(', ')]));
+  const det=[PEND_H].concat(withLast(rows).sort((a,b)=>a.tipo.localeCompare(b.tipo)||a.ent.localeCompare(b.ent)).map(r=>pedRow(r,REF)));
+  const rg=[['Região','Pedidos','Entregues','Em rua','Insuc./troca','NS','Teto do dia']].concat(['GERAL','CAPITAL','INTERIOR'].map(k=>{const S=stats(RAW.filter(r=>k==='GERAL'||r.reg===k),false);return [REG_LAB[k],S.n,S.ent,S.pen,S.ins,pct(S.ns),pct(S.teto)];}));
+  return [{name:'NS por região',aoa:rg},{name:'Resumo por tipo',aoa:res},{name:'Detalhe pedidos',aoa:det}];
+}
+function pendAoa(){return [PEND_H].concat([...PEND].sort((a,b)=>b.idle-a.idle).map(r=>pedRow(r,REF)));}
+$('btnTipoXls').onclick=()=>dlXlsx('ocorrencias_por_tipo_'+stamp(),tipoSheets());
+$('btnPendXls').onclick=()=>dlXlsx('pedidos_em_aberto_'+stamp(),[{name:'Pedidos em aberto',aoa:pendAoa()}]);
+function withLast(rows){const lb=new Map();RAW.forEach(r=>{if(r.c==='ENT'&&r.t&&(!lb.get(r.ent)||r.t>lb.get(r.ent)))lb.set(r.ent,r.t);});return rows.map(r=>({...r,lastDrv:lb.get(r.ent)}));}
+
+/* ---------- destaque: pedidos em nome de um entregador específico ---------- */
+const DESTAQUE='Claudio Raimundo Nonato';
+function destaque(ref,excl){
+  const rs=withLast(RAW.filter(r=>norm(r.ent)===norm(DESTAQUE))).map(r=>({...r,idle:r.t?(ref-r.t)/6e4:NaN}));
+  if(VIEW!=='GERAL'&&regiao(DESTAQUE)!==VIEW){$('destaque').innerHTML='';return;}
+  if(!rs.length){$('destaque').innerHTML=`<div class="card dq"><h2>Pedidos em nome de ${esc(DESTAQUE)}</h2><p class="hint">Nenhum pedido em nome dele nesta base.</p></div>`;return;}
+  const S=stats(rs,excl);
+  const m=new Map();rs.forEach(r=>m.set(r.tipo,(m.get(r.tipo)||0)+1));
+  const lab={ENT:'ok',PEN:'neutral',INS:'bad',EXC:'warn'};
+  const open=rs.filter(r=>r.c!=='ENT'&&r.c!=='EXC').length;
+  const sorted=[...rs].sort((a,b)=>(a.c==='ENT')-(b.c==='ENT')||b.idle-a.idle);
+  $('destaque').innerHTML=`<div class="card dq">
+   <div class="card-head"><div><h2>Pedidos em nome de ${esc(DESTAQUE)}</h2><p class="hint">Visão fixa, independe do filtro de entregador (aparece nas visões Geral e ${REG_LAB[regiao(DESTAQUE)]}). ${S.ent===0&&open?'<b>Nenhuma entrega registrada no dia.</b>':''}</p></div>
+   ${open?`<button class="btn small wa" data-wa="${esc(rs[0].ent)}">📲 Enviar pendências (WhatsApp)</button>`:''}</div>
+   <div class="nums"><div><b>${rs.length}</b>pedidos</div><div><b>${S.ent}</b>entregues</div><div><b>${S.pen}</b>em rua</div><div><b>${S.ins}</b>insucessos</div><div><b>${pct(S.ns,1)}</b>NS dele</div><div><b>${dur(Math.max(...rs.map(r=>r.idle).filter(isFinite)))}</b>maior tempo parado</div></div>
+   <div style="margin-bottom:8px">${[...m.entries()].map(([t,n])=>`<span class="badge ${lab[cls(t)]}" style="margin-right:6px">${esc(t)}: ${n}</span>`).join('')}</div>
+   <div class="tw"><table><thead><tr><th>Status</th><th>Pedido cliente</th><th>Pedido</th><th>NF</th><th>Romaneio</th><th class="num">Último evento</th><th class="num">Sem movimentação</th></tr></thead><tbody>
+   ${sorted.map(r=>`<tr><td><span class="badge ${lab[r.c]}">${esc(r.tipo)}</span></td><td>${esc(r.ped)}</td><td>${esc(r.pint)}</td><td>${esc(r.nf)}</td><td>${esc(r.rom)}</td><td class="num">${hhmm(r.t)}</td><td class="num">${r.c==='ENT'?'—':(r.idle>GAP?`<span class="badge bad">⚠ ${dur(r.idle)}</span>`:dur(r.idle))}</td></tr>`).join('')}
+   </tbody></table></div></div>`;
+}
+
+/* ---------- motivos de insucesso ---------- */
+function insOpen(drv){
+  const rs=RAW.filter(r=>r.ent===drv&&(r.c==='INS'||r.c==='EXC')).map(r=>({...r,idle:r.t?(REF-r.t)/6e4:NaN})).sort((a,b)=>a.tipo.localeCompare(b.tipo)||a.t-b.t);
+  const m=new Map();rs.forEach(r=>m.set(r.tipo,(m.get(r.tipo)||0)+1));
+  $('insTit').textContent=`Motivos de insucesso – ${drv}`;
+  $('insBody').innerHTML=`<div style="margin-bottom:10px">${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span class="badge ${cls(t)==='EXC'?'warn':'bad'}" style="margin:0 6px 6px 0">${esc(t)}: ${n}</span>`).join('')}</div>
+   <div class="tw"><table><thead><tr><th>Motivo</th><th>Pedido cliente</th><th>Pedido</th><th>NF</th><th>Romaneio</th><th class="num">Hora</th><th class="num">Há</th></tr></thead><tbody>
+   ${rs.map(r=>`<tr><td><span class="badge ${r.c==='EXC'?'warn':'bad'}">${esc(r.tipo)}</span></td><td>${esc(r.ped)}</td><td>${esc(r.pint)}</td><td>${esc(r.nf)}</td><td>${esc(r.rom)}</td><td class="num">${hhmm(r.t)}</td><td class="num">${dur(r.idle)}</td></tr>`).join('')}</tbody></table></div>`;
+  $('insModal').hidden=false;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ins]');if(b)insOpen(b.getAttribute('data-ins'));});
+$('insClose').onclick=()=>$('insModal').hidden=true;
+$('insModal').onclick=e=>{if(e.target.id==='insModal')$('insModal').hidden=true;};
+
+/* ---------- WhatsApp ---------- */
+function waOpenList(){return withLast(RAW).filter(r=>r.c==='PEN'||r.c==='INS').map(r=>({...r,idle:r.t?(REF-r.t)/6e4:NaN}));}
+function waBuild(drv){
+  const all=RAW.filter(r=>r.ent===drv);
+  const ab=waOpenList().filter(r=>r.ent===drv).sort((a,b)=>b.idle-a.idle);
+  const ent=all.filter(r=>r.c==='ENT').length;
+  const first=drv.split(' ')[0];const nome=first.charAt(0).toUpperCase()+first.slice(1).toLowerCase();
+  const roms=[...new Set(ab.map(r=>r.rom))];
+  let t=`*CONFIANCE – Pedidos pendentes*\n`;
+  t+=`Olá, ${nome}! Atualização de ${REF.toLocaleDateString('pt-BR')} às ${hhmm(REF)}.\n\n`;
+  t+=`Você tem *${ab.length} pedido(s) em aberto*${roms.length?` (romaneio${roms.length>1?'s':''} ${roms.join(', ')})`:''}.\n`;
+  t+=`Hoje: ${ent} entregue(s) de ${all.length}.\n`;
+  t+=`Ordem de prioridade = mais tempo sem movimentação primeiro:\n`;
+  ab.forEach((r,i)=>{
+    const crit=r.idle>GAP?' ⚠️':'';
+    t+=`\n*${i+1}) Pedido ${r.ped}*${crit}\n`;
+    if(r.pint)t+=`Pedido interno: ${r.pint}\n`;
+    t+=`NF: ${r.nf}${r.serie?` | Série: ${r.serie}`:''}\n`;
+    t+=`Romaneio: ${r.rom}\n`;
+    t+=`Status: ${r.tipo}${r.c==='INS'?' (precisa de nova tentativa ou retorno)':''}\n`;
+    t+=`Sem movimentação: ${dur(r.idle)}\n`;
+  });
+  t+=`\n👉 Dê baixa no app assim que entregar.\n👉 Cliente ausente, endereço não localizado ou qualquer problema: avise a base na hora.\nMeta do dia: NS ${pct(META)}. Contamos com você!`;
+  return {t,n:ab.length};
+}
+function waTelKey(d){return 'nsWaTel_'+norm(d);}
+function waOpen(drv){
+  const drvs=[...new Set(waOpenList().map(r=>r.ent))].sort((a,b)=>a.localeCompare(b));
+  if(!drvs.length){alertMsg('Nenhum pedido em aberto para enviar.');return;}
+  if(!drv||!drvs.includes(drv))drv=($('fEnt').value&&drvs.includes($('fEnt').value))?$('fEnt').value:drvs[0];
+  $('waDrv').innerHTML=drvs.map(d=>`<option ${d===drv?'selected':''}>${esc(d)}</option>`).join('');
+  waFill();$('waModal').hidden=false;
+}
+function waFill(){const d=$('waDrv').value,b=waBuild(d);$('waTxt').value=b.t;
+  let tel='';try{tel=localStorage.getItem(waTelKey(d))||'';}catch(e){}$('waTel').value=tel;
+  $('waInfo').textContent=`${b.n} pedido(s) em aberto (em rua + insucessos). Você pode editar o texto antes de enviar. O número fica salvo neste navegador.`;$('waMsg').textContent='';}
+function alertMsg(t){$('msg').textContent=t;setTimeout(()=>$('msg').textContent='',4000);}
+$('btnWa').onclick=()=>waOpen($('fEnt').value);
+$('waDrv').onchange=waFill;
+$('waClose').onclick=()=>$('waModal').hidden=true;
+$('waModal').onclick=e=>{if(e.target.id==='waModal')$('waModal').hidden=true;};
+$('waCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('waTxt').value);$('waMsg').textContent='✓ Copiado';}catch(e){$('waTxt').select();document.execCommand('copy');$('waMsg').textContent='✓ Copiado';}};
+$('waGo').onclick=()=>{let tel=$('waTel').value.replace(/\D/g,'');
+  if(tel){if(tel.length<=11)tel='55'+tel;try{localStorage.setItem(waTelKey($('waDrv').value),$('waTel').value);}catch(e){}}
+  window.open('https://wa.me/'+(tel||'')+'?text='+encodeURIComponent($('waTxt').value),'_blank');};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-wa]');if(b)waOpen(b.getAttribute('data-wa'));});
+
+/* ---------- init ---------- */
+(function(){
+  try{const s=JSON.parse(localStorage.getItem('nsPainelBase')||'null');
+    if(s&&s.rows&&s.rows.length){load(s.rows.map(fromArr),s.src,false);return;}}catch(e){}
+  load(fromEmbed(EMBED),EMBED_NAME+' (embutida)',false);
+})();
+</script>
+</body>
+</html>
